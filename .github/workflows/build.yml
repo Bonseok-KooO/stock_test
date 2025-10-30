@@ -28,7 +28,12 @@ jobs:
     
     - name: Build with PyInstaller
       run: |
-        poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette --hidden-import=pydantic_core --hidden-import=httpx --hidden-import=jinja2 --hidden-import=multipart main.py
+        else
+          poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
+        fi
+      shell: bash
     
     - name: Sign macOS app (if on macOS)
       if: matrix.os == 'macos-latest'
