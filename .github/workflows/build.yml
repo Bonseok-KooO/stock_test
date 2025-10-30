@@ -30,6 +30,12 @@ jobs:
       run: |
         poetry run pyinstaller main.spec
     
+    - name: Sign macOS app (if on macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        # 임시로 ad-hoc 서명 적용 (개발용)
+        codesign --force --deep --sign - dist/client || true
+    
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
