@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "inventory-api"
+version = "0.1.0"
+description = "재고 관리 API"
+authors = ["Your Name <your.email@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
+httpx = "^0.25.0"
+python-dotenv = "^1.0.0"
+pydantic = "^2.0.0"
+jinja2 = "^3.1.0"
+python-multipart = "^0.0.6"
+pydantic-settings = "^2.11.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

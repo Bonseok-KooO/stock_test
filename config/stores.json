@@ -1,0 +1,20 @@
+[
+  {
+    "id": "DDAA",
+    "name": "플러스점",
+    "is_default": true,
+    "added_by": null
+  },
+  {
+    "id": "DB67",
+    "name": "트윈시티점",
+    "is_default": true,
+    "added_by": null
+  },
+  {
+    "id": "D578",
+    "name": "타워팰리스점",
+    "is_default": true,
+    "added_by": null
+  }
+]

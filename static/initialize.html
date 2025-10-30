@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매장 재고 초기화</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        .danger-zone {
+            border: 3px solid var(--pico-color-red-500);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            background: rgba(255, 0, 0, 0.05);
+        }
+
+        .warning-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .warning-content {
+            background: var(--pico-background-color);
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            text-align: center;
+            border: 8px solid var(--pico-color-red-500);
+            box-shadow: 0 8px 24px rgba(255, 0, 0, 0.4);
+            outline: 3px solid var(--pico-color-orange-500);
+            outline-offset: 3px;
+            opacity: 1;
+        }
+
+        .warning-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        #result {
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid var(--pico-border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: var(--pico-card-background-color);
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>⚠️ 매장 재고 초기화</h1>
+
+        <div style="margin-bottom: 2rem;">
+            <a href="/" role="button" class="secondary">← 메인으로 돌아가기</a>
+        </div>
+
+        <div class="danger-zone">
+            <h2>🚨 위험 구역</h2>
+            <p><strong>주의:</strong> 이 작업은 선택한 매장의 <strong>모든 재고를 완전히 삭제</strong>합니다.</p>
+            <p>실행 전에 반드시 확인하시기 바랍니다.</p>
+
+            <form id="initialize-form">
+                <label for="store">매장 선택:</label>
+                <select id="store" name="store" required>
+                    {% for store in stores %}
+                    <option value="{{ store.id }}">{{ store.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="button" id="initialize-btn" class="contrast" style="margin-top: 1rem;">
+                    ⚠️ 매장 전체 재고 초기화 실행
+                </button>
+            </form>
+        </div>
+
+        <article>
+            <header>실행 결과:</header>
+            <pre id="result">아직 실행하지 않았습니다.</pre>
+        </article>
+    </main>
+
+    <!-- 경고 다이얼로그 -->
+    <div id="warning-dialog" class="warning-dialog">
+        <div class="warning-content">
+            <h3>⚠️ 최종 확인</h3>
+            <p><strong id="selected-store"></strong> 매장의 <strong>모든 재고가 완전히 삭제</strong>됩니다.</p>
+            <p>이 작업은 <strong>되돌릴 수 없습니다</strong>.</p>
+            <p>정말로 실행하시겠습니까?</p>
+
+            <div class="warning-buttons">
+                <button id="cancel-btn" class="secondary">취소</button>
+                <button id="confirm-btn" class="contrast">삭제 실행</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const resultDiv = document.getElementById('result');
+        const warningDialog = document.getElementById('warning-dialog');
+        const selectedStoreSpan = document.getElementById('selected-store');
+
+        function setResultStyle(type) {
+            if (type === 'loading') {
+                resultDiv.style.color = 'var(--pico-color-blue-500)';
+                resultDiv.style.borderColor = 'var(--pico-color-blue-500)';
+            } else if (type === 'success') {
+                resultDiv.style.color = 'var(--pico-color-green-500)';
+                resultDiv.style.borderColor = 'var(--pico-color-green-500)';
+            } else if (type === 'warning') {
+                resultDiv.style.color = 'var(--pico-color-orange-500)';
+                resultDiv.style.borderColor = 'var(--pico-color-orange-500)';
+            } else if (type === 'error') {
+                resultDiv.style.color = 'var(--pico-color-red-500)';
+                resultDiv.style.borderColor = 'var(--pico-color-red-500)';
+            }
+        }
+
+        function showWarningDialog() {
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+            selectedStoreSpan.textContent = storeName;
+            warningDialog.style.display = 'flex';
+        }
+
+        function hideWarningDialog() {
+            warningDialog.style.display = 'none';
+        }
+
+        async function initializeStore() {
+            const storeId = document.getElementById('store').value;
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+
+            resultDiv.textContent = '매장 재고 초기화 중...';
+            setResultStyle('loading');
+
+            try {
+                const response = await fetch(`/inventory/initialize/${storeId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `⚠️ 매장 재고 초기화 완료\n✅ ${data.message}`;
+                    setResultStyle('warning');
+                } else {
+                    throw new Error(data.detail || '매장 재고 초기화 실패');
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 매장 재고 초기화 실패: ${error.message}`;
+                setResultStyle('error');
+            }
+        }
+
+        // 이벤트 리스너
+        document.getElementById('initialize-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showWarningDialog();
+        });
+
+        document.getElementById('cancel-btn').addEventListener('click', hideWarningDialog);
+
+        document.getElementById('confirm-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            hideWarningDialog();
+            initializeStore();
+        });
+    </script>
+</body>
+
+</html>

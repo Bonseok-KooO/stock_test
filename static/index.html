@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>재고 관리 시스템</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--pico-border-color);
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--pico-color-grey-500);
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            color: var(--pico-color);
+            background: var(--pico-card-background-color);
+        }
+
+        .tab.active {
+            color: var(--pico-color-blue-500);
+            border-bottom-color: var(--pico-color-blue-500);
+            background: var(--pico-card-background-color);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        #result {
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid var(--pico-border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: var(--pico-card-background-color);
+            margin-top: 1.5rem;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--pico-background-color);
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 2px solid var(--pico-border-color);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .icon {
+            font-size: 1.2em;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>📦 재고 관리 시스템</h1>
+
+        <!-- 탭 네비게이션 -->
+        <div class="tabs">
+            <button class="tab active" data-tab="inventory">
+                <span class="icon">📋</span>재고 확인 & 채우기
+            </button>
+            <button class="tab" data-tab="manage">
+                <span class="icon">⚙️</span>상품/매장 관리
+            </button>
+            <button class="tab" data-tab="logs">
+                <span class="icon">📊</span>사용 로그
+            </button>
+        </div>
+
+        <!-- 재고 확인 & 채우기 탭 -->
+        <div id="inventory-tab" class="tab-content active">
+            <article>
+                <header>재고 관리 <span id="user-display"
+                        style="color: var(--pico-color-blue-500); font-size: 0.9rem;"></span></header>
+
+
+
+                <form id="inventory-form">
+                    <div class="form-grid">
+                        <div>
+                            <label for="product">상품 선택:</label>
+                            <select id="product" name="product" required>
+                                {% for product in products %}
+                                <option value="{{ product.id }}">{{ product.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="store">매장 선택:</label>
+                            <select id="store" name="store" required>
+                                {% for store in stores %}
+                                <option value="{{ store.id }}">{{ store.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" id="check-btn" class="secondary">
+                            <span class="icon">🔍</span>재고 확인
+                        </button>
+                        <button type="button" id="fill-btn">
+                            <span class="icon">📦</span>재고 채우기
+                        </button>
+                        <button type="button" id="clear-btn" class="contrast">
+                            <span class="icon">🗑️</span>재고 없애기
+                        </button>
+                    </div>
+                </form>
+
+                <div id="result">아직 요청하지 않았습니다.</div>
+            </article>
+        </div>
+
+        <!-- 상품/매장 관리 탭 -->
+        <div id="manage-tab" class="tab-content">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <!-- 상품 관리 -->
+                <article>
+                    <header>📦 상품 관리</header>
+                    <div style="margin-bottom: 1rem;">
+                        <button type="button" id="add-product-btn" class="secondary">+ 상품 추가</button>
+                    </div>
+                    <div id="product-list" style="max-height: 400px; overflow-y: auto;">
+                        <!-- 상품 목록이 여기에 동적으로 로드됩니다 -->
+                    </div>
+                </article>
+
+                <!-- 매장 관리 -->
+                <article>
+                    <header>🏪 매장 관리</header>
+                    <div style="margin-bottom: 1rem;">
+                        <button type="button" id="add-store-btn" class="secondary">+ 매장 추가</button>
+                    </div>
+                    <div id="store-list" style="max-height: 400px; overflow-y: auto;">
+                        <!-- 매장 목록이 여기에 동적으로 로드됩니다 -->
+                    </div>
+                </article>
+            </div>
+        </div>
+
+        <!-- 사용 로그 탭 -->
+        <div id="logs-tab" class="tab-content">
+            <article>
+                <header>📊 사용 로그</header>
+                <div style="margin-bottom: 1rem;">
+                    <button type="button" id="refresh-logs-btn" class="secondary">🔄 새로고침</button>
+                </div>
+                <div id="logs-container" style="max-height: 500px; overflow-y: auto;">
+                    <!-- 로그가 여기에 동적으로 로드됩니다 -->
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <!-- 사용자 이름 입력 모달 -->
+    <div id="user-modal" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <h3>👤 사용자 이름 입력</h3>
+            <p>재고 관리를 위해 사용자 이름을 입력해주세요.</p>
+            <div style="margin: 1.5rem 0;">
+                <input type="text" id="user-name-input" placeholder="이름을 입력하세요" required>
+            </div>
+            <button id="user-confirm" style="width: 100%;">시작하기</button>
+        </div>
+    </div>
+
+    <!-- 재고 채우기 모달 -->
+    <div id="fill-modal" class="modal">
+        <div class="modal-content">
+            <h3>📦 재고 채우기</h3>
+            <p id="fill-info">상품과 매장 정보</p>
+
+            <div style="margin: 1.5rem 0;">
+                <label for="quantity">추가할 재고 수량:</label>
+                <input type="number" id="quantity" min="0" max="9999" value="100" placeholder="수량 입력">
+            </div>
+
+            <div class="modal-buttons">
+                <button id="fill-cancel" class="secondary">취소</button>
+                <button id="fill-confirm">채우기 실행</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 재고 없애기 모달 -->
+    <div id="clear-modal" class="modal">
+        <div class="modal-content">
+            <h3>🗑️ 재고 없애기</h3>
+            <p id="clear-info">상품과 매장 정보</p>
+            <p style="color: var(--pico-color-red-500); font-weight: bold;">⚠️ 재고를 0으로 만듭니다!</p>
+
+            <div class="modal-buttons">
+                <button id="clear-cancel" class="secondary">취소</button>
+                <button id="clear-confirm" class="contrast">재고 없애기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상품 추가 모달 -->
+    <div id="add-product-modal" class="modal">
+        <div class="modal-content">
+            <h3>📦 상품 추가</h3>
+            <div style="margin: 1.5rem 0;">
+                <label for="new-product-id">상품 코드:</label>
+                <input type="text" id="new-product-id" placeholder="상품 코드 입력" required>
+            </div>
+            <div style="margin: 1.5rem 0;">
+                <label for="new-product-name">상품 이름:</label>
+                <input type="text" id="new-product-name" placeholder="상품 이름 입력" required>
+            </div>
+            <div class="modal-buttons">
+                <button id="product-cancel" class="secondary">취소</button>
+                <button id="product-confirm">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 매장 추가 모달 -->
+    <div id="add-store-modal" class="modal">
+        <div class="modal-content">
+            <h3>🏪 매장 추가</h3>
+            <div style="margin: 1.5rem 0;">
+                <label for="new-store-id">매장 코드:</label>
+                <input type="text" id="new-store-id" placeholder="매장 코드 입력" required>
+            </div>
+            <div style="margin: 1.5rem 0;">
+                <label for="new-store-name">매장 이름:</label>
+                <input type="text" id="new-store-name" placeholder="매장 이름 입력" required>
+            </div>
+            <div class="modal-buttons">
+                <button id="store-cancel" class="secondary">취소</button>
+                <button id="store-confirm">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        const resultDiv = document.getElementById('result');
+        let currentUser = '';
+
+        // 결과 스타일 설정
+        function setResultStyle(element, type) {
+            const colors = {
+                loading: 'var(--pico-color-blue-500)',
+                success: 'var(--pico-color-green-500)',
+                warning: 'var(--pico-color-orange-500)',
+                error: 'var(--pico-color-red-500)'
+            };
+
+            element.style.color = colors[type];
+            element.style.borderColor = colors[type];
+        }
+
+        // 사용자 이름 설정
+        function setUserName() {
+            const userName = document.getElementById('user-name-input').value.trim();
+            if (!userName) {
+                alert('사용자 이름을 입력해주세요.');
+                return;
+            }
+
+            currentUser = userName;
+            localStorage.setItem('currentUser', userName);
+            document.getElementById('user-modal').style.display = 'none';
+            document.getElementById('user-display').textContent = `(${userName}님)`;
+        }
+
+        // 페이지 로드 시 저장된 사용자 이름 확인
+        function checkSavedUser() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = savedUser;
+                document.getElementById('user-modal').style.display = 'none';
+                document.getElementById('user-display').textContent = `(${savedUser}님)`;
+            } else {
+                document.getElementById('user-modal').style.display = 'flex';
+            }
+        }
+
+        // 재고 확인
+        async function checkInventory() {
+            const productId = document.getElementById('product').value;
+            const storeId = document.getElementById('store').value;
+            const productName = document.getElementById('product').selectedOptions[0].text;
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+
+            resultDiv.textContent = '재고 확인 중...';
+            setResultStyle(resultDiv, 'loading');
+
+            try {
+                const response = await fetch(`/inventory/${productId}/${storeId}?user_name=${encodeURIComponent(currentUser)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    let message = `✅ 재고 확인 완료\n상품: ${productName}\n매장: ${storeName}\n남은 수량: ${data.remainQuantity}\n입고 수량: ${data.stockedInQuantity}`;
+
+                    if (data.warning) {
+                        message = `${data.warning}\n\n${message}`;
+                        setResultStyle(resultDiv, 'warning');
+                    } else {
+                        setResultStyle(resultDiv, 'success');
+                    }
+
+                    resultDiv.innerHTML = message;
+                } else {
+                    throw new Error(data.detail || '재고 확인 실패');
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 재고 확인 실패: ${error.message}`;
+                setResultStyle(resultDiv, 'error');
+            }
+        }
+
+        // 재고 채우기 모달 표시
+        function showFillModal() {
+            const productName = document.getElementById('product').selectedOptions[0].text;
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+
+            document.getElementById('fill-info').textContent = `${productName} → ${storeName}`;
+            document.getElementById('fill-modal').style.display = 'flex';
+        }
+
+        // 재고 채우기 실행
+        async function executeFill() {
+            const productId = document.getElementById('product').value;
+            const storeId = document.getElementById('store').value;
+            const productName = document.getElementById('product').selectedOptions[0].text;
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+            const addQuantity = parseInt(document.getElementById('quantity').value) || 100;
+
+            document.getElementById('fill-modal').style.display = 'none';
+
+            resultDiv.textContent = '현재 재고 확인 중...';
+            setResultStyle(resultDiv, 'loading');
+
+            try {
+                // 먼저 현재 재고 확인
+                const checkResponse = await fetch(`/inventory/${productId}/${storeId}?user_name=${encodeURIComponent(currentUser)}`);
+                const currentData = await checkResponse.json();
+
+
+                const currentRemain = currentData.remainQuantity || 0;
+                const newRemain = currentRemain + addQuantity;
+
+                resultDiv.textContent = '재고 채우기 중...';
+
+                const response = await fetch('/inventory/fill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        store_id: storeId,
+                        quantity: newRemain,
+                        user_name: currentUser
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let message = `📦 재고 채우기 성공\n상품: ${productName}\n매장: ${storeName}\n✅ ${data.message}\n이전 재고: ${currentRemain}개 → 현재 재고: ${newRemain}개 (+${addQuantity}개)\n\n⏰ 참고: 재고 반영까지 시간이 걸릴 수 있습니다.`;
+
+                    if (data.warning) {
+                        message = `${data.warning}\n\n${message}`;
+                        setResultStyle(resultDiv, 'warning');
+                    } else {
+                        setResultStyle(resultDiv, 'success');
+                    }
+
+                    resultDiv.innerHTML = message;
+                } else {
+                    throw new Error(data.detail || '재고 채우기 실패');
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 재고 채우기 실패: ${error.message}`;
+                setResultStyle(resultDiv, 'error');
+            }
+        }
+
+        // 재고 없애기 모달 표시
+        function showClearModal() {
+            const productName = document.getElementById('product').selectedOptions[0].text;
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+
+            document.getElementById('clear-info').textContent = `${productName} → ${storeName}`;
+            document.getElementById('clear-modal').style.display = 'flex';
+        }
+
+        // 재고 없애기 실행
+        async function executeClear() {
+            const productId = document.getElementById('product').value;
+            const storeId = document.getElementById('store').value;
+            const productName = document.getElementById('product').selectedOptions[0].text;
+            const storeName = document.getElementById('store').selectedOptions[0].text;
+
+            document.getElementById('clear-modal').style.display = 'none';
+
+            resultDiv.textContent = '재고 없애기 중...';
+            setResultStyle(resultDiv, 'loading');
+
+            try {
+                const response = await fetch('/inventory/fill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        store_id: storeId,
+                        quantity: 0,
+                        user_name: currentUser
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let message = `🗑️ 재고 없애기 성공\n상품: ${productName}\n매장: ${storeName}\n✅ ${data.message}\n재고가 0개로 설정되었습니다.\n\n⏰ 참고: 재고 반영까지 시간이 걸릴 수 있습니다.`;
+
+                    if (data.warning) {
+                        message = `${data.warning}\n\n${message}`;
+                        setResultStyle(resultDiv, 'warning');
+                    } else {
+                        setResultStyle(resultDiv, 'success');
+                    }
+
+                    resultDiv.innerHTML = message;
+                } else {
+                    throw new Error(data.detail || '재고 없애기 실패');
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 재고 없애기 실패: ${error.message}`;
+                setResultStyle(resultDiv, 'error');
+            }
+        }
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM 로드 완료');
+            checkSavedUser();
+
+            // 이벤트 리스너 등록
+            document.getElementById('user-confirm').addEventListener('click', setUserName);
+            document.getElementById('user-name-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') setUserName();
+            });
+
+            document.getElementById('check-btn').addEventListener('click', checkInventory);
+            document.getElementById('fill-btn').addEventListener('click', showFillModal);
+            document.getElementById('clear-btn').addEventListener('click', showClearModal);
+
+            // 관리 기능 이벤트
+            document.getElementById('add-product-btn').addEventListener('click', () => {
+                document.getElementById('add-product-modal').style.display = 'flex';
+            });
+            document.getElementById('add-store-btn').addEventListener('click', () => {
+                document.getElementById('add-store-modal').style.display = 'flex';
+            });
+
+            // 로그 새로고침
+            document.getElementById('refresh-logs-btn').addEventListener('click', loadLogs);
+
+            // 모달 이벤트
+            document.getElementById('fill-cancel').addEventListener('click', () => {
+                document.getElementById('fill-modal').style.display = 'none';
+            });
+            document.getElementById('fill-confirm').addEventListener('click', executeFill);
+
+            document.getElementById('clear-cancel').addEventListener('click', () => {
+                document.getElementById('clear-modal').style.display = 'none';
+            });
+            document.getElementById('clear-confirm').addEventListener('click', executeClear);
+
+            document.getElementById('product-cancel').addEventListener('click', () => {
+                document.getElementById('add-product-modal').style.display = 'none';
+            });
+            document.getElementById('product-confirm').addEventListener('click', addProduct);
+
+            document.getElementById('store-cancel').addEventListener('click', () => {
+                document.getElementById('add-store-modal').style.display = 'none';
+            });
+            document.getElementById('store-confirm').addEventListener('click', addStore);
+
+            // 탭 전환 기능
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetTab = tab.dataset.tab;
+
+                    // 모든 탭과 컨텐츠 비활성화
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                    // 선택된 탭과 컨텐츠 활성화
+                    tab.classList.add('active');
+                    document.getElementById(`${targetTab}-tab`).classList.add('active');
+
+                    // 관리 탭이면 목록 로드
+                    if (targetTab === 'manage') {
+                        loadProductList();
+                        loadStoreList();
+                    } else if (targetTab === 'logs') {
+                        loadLogs();
+                    }
+                });
+            });
+
+            // 모달 외부 클릭 시 닫기
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            console.log('모든 이벤트 리스너 등록 완료');
+        });
+
+        // 관리 기능들 (전역 함수로 정의)
+        async function loadProductList() {
+            try {
+                const response = await fetch('/api/products');
+                const products = await response.json();
+                const productList = document.getElementById('product-list');
+
+                productList.innerHTML = products.map(product => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--pico-border-color);">
+                        <div>
+                            <strong>${product.name}</strong><br>
+                            <small style="color: var(--pico-color-grey-500);">${product.id}</small>
+                            ${!product.is_default && product.added_by ? `<br><small style="color: var(--pico-color-blue-500);">👤 추가한 사람: ${product.added_by}</small>` : ''}
+                        </div>
+                        ${!product.is_default ? `<button onclick="deleteProduct('${product.id}')" class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">삭제</button>` : '<span style="color: var(--pico-color-grey-500); font-size: 0.8rem;">기본</span>'}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('상품 목록 로드 실패:', error);
+            }
+        }
+
+        async function loadStoreList() {
+            try {
+                const response = await fetch('/api/stores');
+                const stores = await response.json();
+                const storeList = document.getElementById('store-list');
+
+                storeList.innerHTML = stores.map(store => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--pico-border-color);">
+                        <div>
+                            <strong>${store.name}</strong><br>
+                            <small style="color: var(--pico-color-grey-500);">${store.id}</small>
+                            ${!store.is_default && store.added_by ? `<br><small style="color: var(--pico-color-blue-500);">👤 추가한 사람: ${store.added_by}</small>` : ''}
+                        </div>
+                        ${!store.is_default ? `<button onclick="deleteStore('${store.id}')" class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">삭제</button>` : '<span style="color: var(--pico-color-grey-500); font-size: 0.8rem;">기본</span>'}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('매장 목록 로드 실패:', error);
+            }
+        }
+
+        async function addProduct() {
+            const productId = document.getElementById('new-product-id').value;
+            const productName = document.getElementById('new-product-name').value;
+
+            if (!productId || !productName) {
+                alert('상품 코드와 이름을 모두 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        product_name: productName,
+                        user_name: currentUser
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('add-product-modal').style.display = 'none';
+                    document.getElementById('new-product-id').value = '';
+                    document.getElementById('new-product-name').value = '';
+                    await loadProductList();
+                    await refreshSelects();
+                    alert('상품이 추가되었습니다.');
+                } else {
+                    const error = await response.json();
+                    alert(error.detail);
+                }
+            } catch (error) {
+                alert('상품 추가 실패: ' + error.message);
+            }
+        }
+
+        async function addStore() {
+            const storeId = document.getElementById('new-store-id').value;
+            const storeName = document.getElementById('new-store-name').value;
+
+            if (!storeId || !storeName) {
+                alert('매장 코드와 이름을 모두 입력해주세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/stores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        store_id: storeId,
+                        store_name: storeName,
+                        user_name: currentUser
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('add-store-modal').style.display = 'none';
+                    document.getElementById('new-store-id').value = '';
+                    document.getElementById('new-store-name').value = '';
+                    await loadStoreList();
+                    await refreshSelects();
+                    alert('매장이 추가되었습니다.');
+                } else {
+                    const error = await response.json();
+                    alert(error.detail);
+                }
+            } catch (error) {
+                alert('매장 추가 실패: ' + error.message);
+            }
+        }
+
+        async function deleteProduct(productId) {
+            if (!confirm('정말로 이 상품을 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await fetch(`/products/${productId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    await loadProductList();
+                    await refreshSelects();
+                    alert('상품이 삭제되었습니다.');
+                } else {
+                    const error = await response.json();
+                    alert(error.detail);
+                }
+            } catch (error) {
+                alert('상품 삭제 실패: ' + error.message);
+            }
+        }
+
+        async function deleteStore(storeId) {
+            if (!confirm('정말로 이 매장을 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await fetch(`/stores/${storeId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    await loadStoreList();
+                    await refreshSelects();
+                    alert('매장이 삭제되었습니다.');
+                } else {
+                    const error = await response.json();
+                    alert(error.detail);
+                }
+            } catch (error) {
+                alert('매장 삭제 실패: ' + error.message);
+            }
+        }
+
+        async function refreshSelects() {
+            // 상품 선택 박스 업데이트
+            try {
+                const productsResponse = await fetch('/api/products');
+                const products = await productsResponse.json();
+                const productSelect = document.getElementById('product');
+
+                productSelect.innerHTML = products.map(product =>
+                    `<option value="${product.id}">${product.name}</option>`
+                ).join('');
+            } catch (error) {
+                console.error('상품 선택 박스 업데이트 실패:', error);
+            }
+
+            // 매장 선택 박스 업데이트
+            try {
+                const storesResponse = await fetch('/api/stores');
+                const stores = await storesResponse.json();
+                const storeSelect = document.getElementById('store');
+
+                storeSelect.innerHTML = stores.map(store =>
+                    `<option value="${store.id}">${store.name}</option>`
+                ).join('');
+            } catch (error) {
+                console.error('매장 선택 박스 업데이트 실패:', error);
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const logs = await response.json();
+                const logsContainer = document.getElementById('logs-container');
+
+                if (logs.length === 0) {
+                    logsContainer.innerHTML = '<p style="text-align: center; color: var(--pico-color-grey-500);">로그가 없습니다.</p>';
+                    return;
+                }
+
+                logsContainer.innerHTML = logs.map(log => {
+                    const statusIcon = log.result === 'success' ? '✅' : '❌';
+                    const actionText = log.action === 'check' ? '재고 확인' : '재고 채우기';
+
+                    return `
+                        <div style="padding: 0.75rem; border-bottom: 1px solid var(--pico-border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${statusIcon} ${actionText}</strong><br>
+                                <small style="color: var(--pico-color-grey-500);">
+                                    ${log.user_name} | ${log.product_name || log.product_id} → ${log.store_name || log.store_id}
+                                </small>
+                            </div>
+                            <div style="text-align: right;">
+                                <small style="color: var(--pico-color-grey-500);">${log.timestamp}</small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('로그 로드 실패:', error);
+                document.getElementById('logs-container').innerHTML = '<p style="color: var(--pico-color-red-500);">로그 로드에 실패했습니다.</p>';
+            }
+        }
+    </script>
+</body>
+
+</html>
