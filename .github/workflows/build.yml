@@ -25,16 +25,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry pyinstaller
         poetry install
-        
-    - name: Install additional Windows dependencies
-      if: matrix.os == 'windows-latest'
-      run: |
-        poetry add pydantic-core jinja2 python-multipart --group dev
     
     - name: Build with PyInstaller
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          poetry run pyinstaller --onedir --noupx --target-arch=x86_64 --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette --hidden-import=pydantic_core --hidden-import=httpx --hidden-import=jinja2 --hidden-import=python_multipart main.py
+          poetry run pyinstaller --onedir --noupx --target-arch=x86_64 --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --collect-all jinja2 --collect-all multipart --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette --hidden-import=pydantic_core --hidden-import=httpx --hidden-import=jinja2 --hidden-import=python_multipart main.py
           mv dist/main/main.exe dist/main/client.exe
         else
           poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
