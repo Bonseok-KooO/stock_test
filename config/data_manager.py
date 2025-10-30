@@ -1,28 +1,12 @@
 import json
 import os
-import sys
 from typing import List, Dict
 from datetime import datetime
 
-def get_data_dir():
-    """OS별 적절한 애플리케이션 데이터 디렉토리 반환"""
-    if hasattr(sys, '_MEIPASS'):
-        # PyInstaller 실행 시: OS별 사용자 애플리케이션 데이터 폴더
-        if sys.platform == "win32":
-            app_data_dir = os.path.join(os.environ.get('APPDATA', ''), 'InventoryManager')
-        else:  # macOS, Linux
-            app_data_dir = os.path.expanduser("~/Library/Application Support/InventoryManager")
-        os.makedirs(app_data_dir, exist_ok=True)
-        return app_data_dir
-    else:
-        # 개발 환경: 프로젝트 루트의 config 디렉토리
-        return os.path.join(os.path.dirname(os.path.dirname(__file__)), "config")
-
 # 데이터 파일 경로
-data_dir = get_data_dir()
-PRODUCTS_FILE = os.path.join(data_dir, "products.json")
-STORES_FILE = os.path.join(data_dir, "stores.json")
-LOGS_FILE = os.path.join(data_dir, "logs.json")
+PRODUCTS_FILE = "config/products.json"
+STORES_FILE = "config/stores.json"
+LOGS_FILE = "config/logs.json"
 
 # 기본 데이터
 DEFAULT_PRODUCTS = [
