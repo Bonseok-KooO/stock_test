@@ -28,7 +28,7 @@ jobs:
     
     - name: Build with PyInstaller
       run: |
-        poetry run pyinstaller main.spec
+        poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
     
     - name: Sign macOS app (if on macOS)
       if: matrix.os == 'macos-latest'
