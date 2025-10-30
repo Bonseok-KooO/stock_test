@@ -29,7 +29,8 @@ jobs:
     - name: Build with PyInstaller
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette --hidden-import=pydantic_core --hidden-import=httpx --hidden-import=jinja2 --hidden-import=multipart main.py
+          poetry run pyinstaller --onedir --noupx --target-arch=x86_64 --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette --hidden-import=pydantic_core --hidden-import=httpx --hidden-import=jinja2 --hidden-import=multipart main.py
+          mv dist/client/client dist/client/client.exe
         else
           poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
         fi
