@@ -33,8 +33,11 @@ jobs:
           poetry show
           echo "=== FastAPI 위치 확인 ==="
           poetry run python -c "import fastapi; print(fastapi.__file__)"
+          echo "=== 가상환경 경로 확인 ==="
+          VENV_PATH=$(poetry env info --path)
+          echo "Virtual env path: $VENV_PATH"
           echo "=== PyInstaller 빌드 시작 ==="
-          poetry run pyinstaller main_debug_windows.spec
+          poetry run pyinstaller --paths="$VENV_PATH/Lib/site-packages" main_debug_windows.spec
         else
           poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
         fi
