@@ -67,11 +67,11 @@ async def get_stores_api():
     return get_stores()
 
 @app.post("/api/products")
-async def add_product_api(product: schemas.Product):
+async def add_product_api(product: schemas.AddProductRequest):
     return add_product(product)
 
 @app.post("/api/stores")
-async def add_store_api(store: schemas.Store):
+async def add_store_api(store: schemas.AddStoreRequest):
     return add_store(store)
 
 @app.delete("/api/products/{product_id}")
