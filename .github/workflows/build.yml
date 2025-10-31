@@ -29,7 +29,7 @@ jobs:
     - name: Build with PyInstaller
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          poetry run pyinstaller --onefile --noupx --name=client main.py
+          poetry run pyinstaller --onefile --noupx --name=client main_debug.py
         else
           poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
         fi
