@@ -42,11 +42,17 @@ app = FastAPI(title="재고 관리 시스템", version="1.0.0")
 
 print("6. 정적 파일 및 템플릿 설정 중...")
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-    templates = Jinja2Templates(directory="static")
-    print("   정적 파일 설정 완료")
+    import os
+    if os.path.exists("static"):
+        app.mount("/static", StaticFiles(directory="static"), name="static")
+        templates = Jinja2Templates(directory="static")
+        print("   정적 파일 설정 완료")
+    else:
+        print("   static 폴더가 없음 - 기본 템플릿 사용")
+        templates = None
 except Exception as e:
     print(f"정적 파일 설정 오류: {e}")
+    templates = None
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):

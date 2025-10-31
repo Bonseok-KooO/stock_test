@@ -7,16 +7,22 @@ site_packages = os.path.join(venv_path, 'Lib', 'site-packages')
 
 block_cipher = None
 
+# 데이터 파일들 - 존재하는 것만 포함
+datas = []
+if os.path.exists('static'):
+    datas.append(('static', 'static'))
+if os.path.exists('config'):
+    datas.append(('config', 'config'))
+if os.path.exists('core'):
+    datas.append(('core', 'core'))
+if os.path.exists('common'):
+    datas.append(('common', 'common'))
+
 a = Analysis(
     ['main_debug.py'],
     pathex=[site_packages],
     binaries=[],
-    datas=[
-        ('static', 'static'),
-        ('config', 'config'),
-        ('core', 'core'),
-        ('common', 'common'),
-    ],
+    datas=datas,
     hiddenimports=[
         'fastapi',
         'fastapi.applications',
@@ -59,6 +65,13 @@ a = Analysis(
         'jinja2',
         'multipart',
         'python_multipart',
+        # 로컬 모듈들
+        'core',
+        'core.services',
+        'config',
+        'config.schemas',
+        'config.data_manager',
+        'common',
     ],
     hookspath=[],
     hooksconfig={},
