@@ -1,68 +1,39 @@
-print("=== 프로그램 시작 ===")
+# Windows용 main.py
+from fastapi import FastAPI, Request, HTTPException, Query
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from core import services
+from config import schemas
+from config.data_manager import (
+    get_products,
+    get_stores,
+    add_product,
+    add_store,
+    delete_product,
+    delete_store,
+    get_logs,
+)
+import threading
+import webbrowser
+import uvicorn
+import os
+import sys
 
-try:
-    print("1. 기본 모듈 import 중...")
-    import threading
-    import webbrowser
-    import os
-    import sys
-    print("   기본 모듈 import 완료")
-    
-    print("2. FastAPI 모듈 import 중...")
-    from fastapi import FastAPI, Request, HTTPException, Query
-    from fastapi.responses import HTMLResponse
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.templating import Jinja2Templates
-    print("   FastAPI 모듈 import 완료")
-    
-    print("3. uvicorn 모듈 import 중...")
-    import uvicorn
-    print("   uvicorn 모듈 import 완료")
-    
-    print("4. 로컬 모듈 import 중...")
-    from core import services
-    from config import schemas
-    from config.data_manager import (
-        get_products,
-        get_stores,
-        add_product,
-        add_store,
-        delete_product,
-        delete_store,
-        get_logs,
-    )
-    print("   로컬 모듈 import 완료")
-    
-except Exception as e:
-    print(f"모듈 import 중 오류 발생: {e}")
-    input("Enter를 눌러 종료하세요...")
-    exit(1)
-
-print("5. 유틸리티 함수 정의 중...")
 def get_resource_path(relative_path):
     """PyInstaller 실행 시 리소스 경로를 올바르게 반환"""
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-print("6. FastAPI 앱 생성 중...")
 app = FastAPI(title="재고 관리 API")
 
-print("7. 정적 파일 및 템플릿 설정 중...")
-try:
-    static_path = get_resource_path("static")
-    if os.path.exists(static_path):
-        app.mount("/static", StaticFiles(directory=static_path), name="static")
-        templates = Jinja2Templates(directory=static_path)
-        print("   정적 파일 설정 완료")
-    else:
-        print("   static 폴더가 없음 - 기본 템플릿 사용")
-        templates = None
-except Exception as e:
-    print(f"정적 파일 설정 오류: {e}")
-    templates = None
-
-print("8. API 엔드포인트 정의 중...")
+# 정적 파일 설정
+static_path = get_resource_path("static")
+templates = None
+if os.path.exists(static_path):
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
+    templates = Jinja2Templates(directory=static_path)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -81,10 +52,8 @@ async def read_root(request: Request):
 async def get_inventory(product_id: str, store_id: str, user_name: str = Query("")):
     """특정 상품의 특정 매장 재고를 조회합니다."""
     result = await services.get_inventories(product_id, store_id, user_name)
-
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
-
     return result
 
 @app.post("/inventory/fill")
@@ -93,20 +62,16 @@ async def fill_inventory(request: schemas.FillInventoryRequest):
     result = await services.fill_inventory(
         request.product_id, request.store_id, request.quantity, request.user_name
     )
-
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
-
     return {"message": "재고가 성공적으로 채워졌습니다", "data": result}
 
 @app.get("/inventory/initialize/{store_id}")
 async def initialize_store_inventory(store_id: str):
-    """매장의 모든 재고를 초기화합니다. ⚠️ 주의: 해당 매장의 모든 재고가 초기화됩니다."""
+    """매장의 모든 재고를 초기화합니다."""
     result = await services.initialize_store_inventory(store_id)
-
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
-
     return {
         "message": f"매장 '{store_id}'의 모든 재고가 초기화되었습니다",
         "data": result,
@@ -165,29 +130,16 @@ async def get_logs_api(hours: int = 24):
 
 def run_server():
     """Uvicorn 서버를 실행하는 함수"""
-    print("9. 서버를 시작합니다...")
-    print("   주소: http://127.0.0.1:8000")
-    try:
-        uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
-    except Exception as e:
-        print(f"서버 시작 중 오류 발생: {e}")
-        input("Enter를 눌러 종료하세요...")
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="error")
 
 if __name__ == "__main__":
-    print("10. 메인 실행 시작...")
-    
     server_thread = threading.Thread(target=run_server)
     server_thread.daemon = True
     server_thread.start()
     
-    print("11. 서버 스레드가 시작되었습니다.")
-    print("12. 브라우저를 열고 있습니다...")
-
     webbrowser.open("http://127.0.0.1:8000")
-
+    
     try:
-        print("13. 프로그램이 실행 중입니다. 종료하려면 Enter를 누르세요.")
         input()
-    except Exception as e:
-        print(f"오류 발생: {e}")
-        input("Enter를 눌러 종료하세요...")
+    except Exception:
+        pass

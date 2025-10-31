@@ -19,7 +19,7 @@ if os.path.exists('common'):
     datas.append(('common', 'common'))
 
 a = Analysis(
-    ['main_debug.py'],
+    ['main_windows.py'],
     pathex=[site_packages],
     binaries=[],
     datas=datas,
