@@ -29,6 +29,11 @@ jobs:
     - name: Build with PyInstaller
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          echo "=== 설치된 패키지 확인 ==="
+          poetry show
+          echo "=== FastAPI 위치 확인 ==="
+          poetry run python -c "import fastapi; print(fastapi.__file__)"
+          echo "=== PyInstaller 빌드 시작 ==="
           poetry run pyinstaller main_debug_windows.spec
         else
           poetry run pyinstaller --onedir --collect-all fastapi --collect-all uvicorn --collect-all pydantic --collect-all starlette --hidden-import=fastapi --hidden-import=uvicorn --hidden-import=pydantic --hidden-import=starlette main.py
