@@ -148,17 +148,30 @@ async def get_logs_api(hours: int = 24):
 
 def run_server():
     """Uvicorn 서버를 실행하는 함수"""
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print("서버를 시작합니다...")
+    print("주소: http://127.0.0.1:8000")
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    except Exception as e:
+        print(f"서버 시작 중 오류 발생: {e}")
+        input("Enter를 눌러 종료하세요...")
 
 
 if __name__ == "__main__":
+    print("프로그램을 시작합니다...")
+    
     server_thread = threading.Thread(target=run_server)
     server_thread.daemon = True
     server_thread.start()
+    
+    print("서버 스레드가 시작되었습니다.")
+    print("브라우저를 열고 있습니다...")
 
     webbrowser.open("http://127.0.0.1:8000")
 
     try:
-        input("testest...\n")
-    except Exception:
-        pass
+        print("프로그램이 실행 중입니다. 종료하려면 Enter를 누르세요.")
+        input()
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        input("Enter를 눌러 종료하세요...")
