@@ -1,10 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+
+# Poetry 가상환경 경로 가져오기
+venv_path = os.popen('poetry env info --path').read().strip()
+site_packages = os.path.join(venv_path, 'Lib', 'site-packages')
 
 block_cipher = None
 
 a = Analysis(
     ['main_debug.py'],
-    pathex=[],
+    pathex=[site_packages],
     binaries=[],
     datas=[
         ('static', 'static'),
